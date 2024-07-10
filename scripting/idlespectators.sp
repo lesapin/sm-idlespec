@@ -66,9 +66,8 @@ public void OnClientDisconnect(int client)
 {
 	if (isEnabled && !timerAlive)
 	{
-		timerAlive = true;
+		Timer_Start();
 		timerStopRepeat = false;
-		CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT);
 	}
 }
 
@@ -78,17 +77,20 @@ public void OnClientDisconnect(int client)
 
 void Cvar_Set()
 {
-	g_cvEnabled = CreateConVar("sm_idlespec_keep", "1",
-		"Disable auto-kick for spectators even if they are idle");
+	g_cvEnabled = CreateConVar("sm_idlespec_autokick", "0",
+		"Enable auto-kick for spectators if they are idle");
 
 	g_cvKickFull = CreateConVar("sm_idlespec_kick_full", "1", 
-		"Auto-kick idle spectators if the server is full");
+		"Auto-kick idle spectators once the server is full");
 
 	g_cvVersion = CreateConVar("sm_idlespec_version", PL_VERSION);
 
 	// L4D: sv_spectatoridletime
 	// CSS: sv_timeout
 	g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
+
+	g_cvEnabled.AddChangeHook(Cvar_EnabledChange);
+	g_cvKickFull.AddChangeHook(Cvar_KickFullChange);
 	g_cvIdleMaxTime.AddChangeHook(Cvar_IdleMaxTimeChange);
 
 	idleTime = g_cvIdleMaxTime.IntValue;
@@ -106,6 +108,30 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
 	PrintToServer("[IdleSpectators] resetIdleTime changed to %f seconds", resetIdleTime);
+}
+
+void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
+{
+	if (StringToInt(newval) == 1)
+	{
+		timerStopRepeat = true;
+		isEnabled = false;
+	}
+	else
+	{
+		if (!timerAlive)
+		{
+			Timer_Start();
+		}
+		
+		timerStopRepeat = false;
+		isEnabled = true;
+	}
+}
+
+void Cvar_KickFullChange(ConVar cvar, char[] oldval, char[] newval)
+{
+	kickIdleOnFull = StringToInt(newval) == 1 ? true : false;
 }
 
 /******************/
@@ -177,6 +203,13 @@ void ResetIdleTimeAll()
 /******************/
 //	Timers
 /******************/
+
+void Timer_Start()
+{
+	timerAlive = true;
+	CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT);
+	ResetIdleTimeAll();
+}
 
 Action Timer_ResetIdle(Handle timer)
 {
