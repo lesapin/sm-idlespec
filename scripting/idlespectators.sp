@@ -5,7 +5,7 @@
 
 #pragma newdecls required
 
-#define PL_VERSION "1.0.5"
+#define PL_VERSION "1.0.7"
 
 bool preventTeamBroadcast = false;
 
@@ -38,9 +38,9 @@ public Plugin myinfo =
 	url = "http://mge.me/"
 };
 
-/*
- * On-Functions
- */
+/**********************/
+//	ON-Functions
+/**********************/
 
 public void OnPluginStart()
 {
@@ -72,14 +72,14 @@ public void OnClientDisconnect(int client)
 	}
 }
 
-/*
- * ConVars
- */
+/******************/
+//	ConVars
+/******************/
 
 void Cvar_Set()
 {
-	g_cvEnabled = CreateConVar("sm_idlespec", "1",
-		"Enable handling of idle spectators");
+	g_cvEnabled = CreateConVar("sm_idlespec_keep", "1",
+		"Disable auto-kick for spectators even if they are idle");
 
 	g_cvKickFull = CreateConVar("sm_idlespec_kick_full", "1", 
 		"Auto-kick idle spectators if the server is full");
@@ -100,17 +100,17 @@ void Cvar_Set()
 
 void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
-	Timer_ResetIdle(null);
+	ResetIdleTimeAll();
 
 	idleTime = StringToInt(newval);
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
-	PrintToServer("[Idle Spectators] resetIdleTime changed to %f seconds", resetIdleTime);
+	PrintToServer("[IdleSpectators] resetIdleTime changed to %f seconds", resetIdleTime);
 }
 
-/*
- * Events
- */
+/******************/
+//	Events
+/******************/
 
 Action Event_PlayerTeam(Event ev, const char[] name, bool dontBroadcast)
 {
@@ -125,6 +125,10 @@ Action Event_PlayerTeam(Event ev, const char[] name, bool dontBroadcast)
 
 	return Plugin_Continue;
 }
+
+/******************/
+//	Misc
+/******************/
 
 void ResetClientIdleTime(int client)
 {
@@ -155,11 +159,8 @@ void ResetClientIdleTime(int client)
 #endif
 }
 
-Action Timer_ResetIdle(Handle timer)
+void ResetIdleTimeAll()
 {
-#if defined DEBUG
-	PrintToChatAll("Timer_ResetIdle");
-#endif
 	preventTeamBroadcast = true;
 
 	for (int client = 1; client <= MaxClients; client++)
@@ -171,6 +172,18 @@ Action Timer_ResetIdle(Handle timer)
 	}
 
 	preventTeamBroadcast = false;
+}
+
+/******************/
+//	Timers
+/******************/
+
+Action Timer_ResetIdle(Handle timer)
+{
+#if defined DEBUG
+	PrintToChatAll("Timer_ResetIdle");
+#endif
+	ResetIdleTimeAll();
 
 	if (timerStopRepeat)
 	{
