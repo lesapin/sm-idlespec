@@ -288,8 +288,6 @@ Action Timer_ResetIdle(Handle timer)
 	if (timerStopRepeat)
 	{
 		timerAlive = false;
-		timerStopRepeat = false;
-
 		return Plugin_Stop;
 	}
 	else if (timerRestart)
