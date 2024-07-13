@@ -133,7 +133,7 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 			CloseHandle(tempTimer);
 		}
 
-		// Let the temporary timer expire after N skips.
+		// Temporary timer that expires after at most N steps.
 		int N = RoundToFloor(float(idleTime)/float(tempIdleTime));
 		if (N <= 0) N = 1;
 
@@ -291,7 +291,13 @@ Action Timer_ResetIdle(Handle timer)
 		idleTime = tempIdleTime;
 		resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
-	
+
+		if (tempTimer != null)
+		{
+			CloseHandle(tempTimer);
+			tempTimer = null;
+		}
+
 		Timer_Start();
 		return Plugin_Stop;
 	} 
