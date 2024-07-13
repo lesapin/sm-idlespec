@@ -5,12 +5,13 @@
 
 #pragma newdecls required
 
-#define PL_VERSION "1.0.7"
+#define PL_VERSION "1.1.2"
 
 bool preventTeamBroadcast = false;
 
 bool timerStopRepeat = false;
 bool timerAlive = true;
+bool timerRestart = false;
 
 int idleTime = 0;
 float resetIdleTime = 0.0;
@@ -35,7 +36,7 @@ public Plugin myinfo =
 	author = "bzdmn",
 	description = "Deal with idle spectators",
 	version = PL_VERSION,
-	url = "http://mge.me/"
+	url = "https://mge.me/"
 };
 
 /**********************/
@@ -44,11 +45,13 @@ public Plugin myinfo =
 
 public void OnPluginStart()
 {
-	Cvar_Set();
-
-	CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT);
-
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Pre);
+}
+
+public void OnConfigsExecuted()
+{
+	Cvar_Set();
+	Timer_Start();
 }
 
 public void OnClientConnected(int client)
@@ -66,8 +69,8 @@ public void OnClientDisconnect(int client)
 {
 	if (isEnabled && !timerAlive)
 	{
-		Timer_Start();
 		timerStopRepeat = false;
+		Timer_Start();
 	}
 }
 
@@ -107,6 +110,8 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	idleTime = StringToInt(newval);
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
+	timerRestart = true;
+
 	PrintToServer("[IdleSpectators] resetIdleTime changed to %f seconds", resetIdleTime);
 }
 
@@ -119,13 +124,13 @@ void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 	}
 	else
 	{
+		timerStopRepeat = false;
+		isEnabled = true;
+		
 		if (!timerAlive)
 		{
 			Timer_Start();
 		}
-		
-		timerStopRepeat = false;
-		isEnabled = true;
 	}
 }
 
@@ -191,7 +196,7 @@ void ResetIdleTimeAll()
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && IsClientObserver(client))
+		if (IsClientInGame(client) && GetClientTeam(client) == TeamSpec)
 		{
 			ResetClientIdleTime(client);
 		}
@@ -207,8 +212,7 @@ void ResetIdleTimeAll()
 void Timer_Start()
 {
 	timerAlive = true;
-	CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT);
-	ResetIdleTimeAll();
+	CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
 Action Timer_ResetIdle(Handle timer)
@@ -216,13 +220,21 @@ Action Timer_ResetIdle(Handle timer)
 #if defined DEBUG
 	PrintToChatAll("Timer_ResetIdle");
 #endif
-	ResetIdleTimeAll();
-
 	if (timerStopRepeat)
 	{
 		timerAlive = false;
+		timerStopRepeat = false;
 		return Plugin_Stop;
 	}
+
+	ResetIdleTimeAll();
+
+	if (timerRestart)
+	{
+		timerRestart = false;	
+		Timer_Start();
+		return Plugin_Stop;
+	} 
 
 	return Plugin_Continue;
 }
