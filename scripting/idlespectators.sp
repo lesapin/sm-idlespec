@@ -18,7 +18,6 @@ float resetIdleTime = 0.0;
 
 ConVar g_cvEnabled;
 ConVar g_cvKickFull;
-ConVar g_cvVersion;
 ConVar g_cvIdleMaxTime;
 
 bool isEnabled = true;
@@ -86,7 +85,13 @@ void Cvar_Set()
 	g_cvKickFull = CreateConVar("sm_idlespec_kick_full", "1", 
 		"Auto-kick idle spectators once the server is full");
 
-	g_cvVersion = CreateConVar("sm_idlespec_version", PL_VERSION);
+	CreateConVar
+	(
+		"sm_idlespec_version", 
+		PL_VERSION,
+		"sm_idlespec version",
+        	FCVAR_SPONLY | FCVAR_CHEAT
+	);
 
 	// L4D: sv_spectatoridletime
 	// CSS: sv_timeout
