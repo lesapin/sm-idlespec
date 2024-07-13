@@ -261,7 +261,7 @@ Action Timer_RepeatNTimes(Handle timer, int N)
 	
 	CloseHandle(tempTimer);
 	
-	if (N => 1)
+	if (N >= 1)
 	{
 		tempTimer = CreateTimer
 		(
@@ -289,6 +289,7 @@ Action Timer_ResetIdle(Handle timer)
 	{
 		timerAlive = false;
 		timerStopRepeat = false;
+
 		return Plugin_Stop;
 	}
 	else if (timerRestart)
