@@ -118,15 +118,15 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	// Let the old timer run its course and restart it as a longer timer.
 	if (tempIdleTime >= idleTime)
 	{
-		idleTime = tempIdleTime;
 		timerRestart = true;
 	}
-	// Create a temporary timer to fill-in the time before our original timer can restart.
+	// Create a temporary timer to fill-in the gap before our original timer can restart.
 	else
 	{	
-		ResetIdleTimeAll();
-
 		timerRestart = true;
+
+		// Prevent currently idling spectators from getting insta-kicked.
+		ResetIdleTimeAll();
 
 		if (tempTimer != null)
 		{
@@ -143,12 +143,8 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 			Timer_RepeatNTimes, 
 			N,
 			TIMER_FLAG_NO_MAPCHANGE
-		)
+		);
 	}
-
-	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
-
-	LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 }
 
 void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
@@ -254,25 +250,25 @@ void Timer_Start()
 Action Timer_RepeatNTimes(Handle timer, int N)
 {
 	ResetIdleTimeAll();
-
-	if (N == 0)
+	
+	CloseHandle(tempTimer);
+	
+	if (N => 1)
 	{
-		tempTimer = null;
-	}
-	else
-	{
-		CloseHandle(tempTimer);
-
 		tempTimer = CreateTimer
 		(
 			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
 			Timer_RepeatNTimes, 
 			N - 1,
 			TIMER_FLAG_NO_MAPCHANGE
-		)
+		);
+	}
+	else
+	{
+		tempTimer = null;
 	}
 
-	return Plugin_Stop
+	return Plugin_Stop;
 }
 
 Action Timer_ResetIdle(Handle timer)
@@ -290,7 +286,12 @@ Action Timer_ResetIdle(Handle timer)
 	}
 	else if (timerRestart)
 	{
-		timerRestart = false;	
+		timerRestart = false;
+
+		idleTime = tempIdleTime;
+		resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
+		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
+	
 		Timer_Start();
 		return Plugin_Stop;
 	} 
