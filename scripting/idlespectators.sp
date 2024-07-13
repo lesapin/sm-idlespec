@@ -13,7 +13,10 @@ bool timerStopRepeat = false;
 bool timerAlive = true;
 bool timerRestart = false;
 
+Timer tempTimer = null;
+
 int idleTime = 0;
+int tempIdleTime = 0;
 float resetIdleTime = 0.0;
 
 ConVar g_cvEnabled;
@@ -110,29 +113,40 @@ void Cvar_Set()
 
 void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
-	idleTime = StringToInt(newval);
-	oldTime = StringToInt(oldval);
-	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
+	tempIdleTime = StringToInt(newval);
 
 	// Let the old timer run its course and restart it as a longer timer.
-	if (idleTime >= oldTime)
+	if (tempIdleTime >= idleTime)
 	{
+		idleTime = tempIdleTime;
 		timerRestart = true;
 	}
 	// Create a temporary timer to fill-in the time before our original timer can restart.
 	else
 	{	
-		// Let the temporary timer expire after N skips.
-		timerStopRepeat = true;
-		
-		int N = RoundToFloor(float(oldTime)/float(idleTime));
-		if (N == 0) N = 1;
+		ResetIdleTimeAll();
 
-		Timer_Start(N);
-
-		// Restart the old timer with a new resetIdleTime value. 
 		timerRestart = true;
+
+		if (tempTimer != null)
+		{
+			CloseHandle(tempTimer);
+		}
+
+		// Let the temporary timer expire after N skips.
+		int N = RoundToFloor(float(idleTime)/float(tempIdleTime));
+		if (N <= 0) N = 1;
+
+		tempTimer = CreateTimer
+		(
+			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
+			Timer_RepeatNTimes, 
+			N,
+			TIMER_FLAG_NO_MAPCHANGE
+		)
 	}
+
+	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
 	LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 }
@@ -148,7 +162,7 @@ void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 	{
 		if (!timerAlive && !timerRestart)
 		{
-			Timer_Start(0);
+			Timer_Start();
 		}
 
 		timerStopRepeat = false;
@@ -231,26 +245,44 @@ void ResetIdleTimeAll()
 //	Timers
 /******************/
 
-void Timer_Start(int skipCount)
+void Timer_Start()
 {
 	timerAlive = true;
-	CreateTimer(resetIdleTime, Timer_ResetIdle, skipCount, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(resetIdleTime, Timer_ResetIdle,  _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
-Action Timer_ResetIdle(Handle timer, int skips)
+Action Timer_RepeatNTimes(Handle timer, int N)
+{
+	ResetIdleTimeAll();
+
+	if (N == 0)
+	{
+		tempTimer = null;
+	}
+	else
+	{
+		CloseHandle(tempTimer);
+
+		tempTimer = CreateTimer
+		(
+			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
+			Timer_RepeatNTimes, 
+			N - 1,
+			TIMER_FLAG_NO_MAPCHANGE
+		)
+	}
+
+	return Plugin_Stop
+}
+
+Action Timer_ResetIdle(Handle timer)
 {
 #if defined DEBUG
 	PrintToChatAll("Timer_ResetIdle");
 #endif
 	ResetIdleTimeAll();
 
-	static int skipCount = skips;
-
-	if (skipCount > 0)
-	{
-		skipCount--;
-	}
-	else if (timerStopRepeat)
+	if (timerStopRepeat)
 	{
 		timerAlive = false;
 		timerStopRepeat = false;
@@ -259,7 +291,7 @@ Action Timer_ResetIdle(Handle timer, int skips)
 	else if (timerRestart)
 	{
 		timerRestart = false;	
-		Timer_Start(0);
+		Timer_Start();
 		return Plugin_Stop;
 	} 
 
