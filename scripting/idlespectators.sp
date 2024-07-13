@@ -290,6 +290,7 @@ Action Timer_ResetIdle(Handle timer)
 
 		idleTime = tempIdleTime;
 		resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
+
 		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 
 		if (tempTimer != null)
@@ -299,6 +300,7 @@ Action Timer_ResetIdle(Handle timer)
 		}
 
 		Timer_Start();
+
 		return Plugin_Stop;
 	} 
 
