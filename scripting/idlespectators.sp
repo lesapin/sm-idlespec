@@ -110,14 +110,31 @@ void Cvar_Set()
 
 void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
-	ResetIdleTimeAll();
-
 	idleTime = StringToInt(newval);
+	oldTime = StringToInt(oldval);
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
-	timerRestart = true;
+	// Let the old timer run its course and restart it as a longer timer.
+	if (idleTime >= oldTime)
+	{
+		timerRestart = true;
+	}
+	// Create a temporary timer to fill-in the time before our original timer can restart.
+	else
+	{	
+		// Let the temporary timer expire after N skips.
+		timerStopRepeat = true;
+		
+		int N = RoundToFloor(float(oldTime)/float(idleTime));
+		if (N == 0) N = 1;
 
-	PrintToServer("[IdleSpectators] resetIdleTime changed to %f seconds", resetIdleTime);
+		Timer_Start(N);
+
+		// Restart the old timer with a new resetIdleTime value. 
+		timerRestart = true;
+	}
+
+	LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 }
 
 void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
@@ -129,13 +146,13 @@ void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 	}
 	else
 	{
-		timerStopRepeat = false;
-		isEnabled = true;
-		
-		if (!timerAlive)
+		if (!timerAlive && !timerRestart)
 		{
-			Timer_Start();
+			Timer_Start(0);
 		}
+
+		timerStopRepeat = false;
+		isEnabled = true;		
 	}
 }
 
@@ -214,30 +231,35 @@ void ResetIdleTimeAll()
 //	Timers
 /******************/
 
-void Timer_Start()
+void Timer_Start(int skipCount)
 {
 	timerAlive = true;
-	CreateTimer(resetIdleTime, Timer_ResetIdle, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(resetIdleTime, Timer_ResetIdle, skipCount, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 }
 
-Action Timer_ResetIdle(Handle timer)
+Action Timer_ResetIdle(Handle timer, int skips)
 {
 #if defined DEBUG
 	PrintToChatAll("Timer_ResetIdle");
 #endif
-	if (timerStopRepeat)
+	ResetIdleTimeAll();
+
+	static int skipCount = skips;
+
+	if (skipCount > 0)
+	{
+		skipCount--;
+	}
+	else if (timerStopRepeat)
 	{
 		timerAlive = false;
 		timerStopRepeat = false;
 		return Plugin_Stop;
 	}
-
-	ResetIdleTimeAll();
-
-	if (timerRestart)
+	else if (timerRestart)
 	{
 		timerRestart = false;	
-		Timer_Start();
+		Timer_Start(0);
 		return Plugin_Stop;
 	} 
 
