@@ -13,7 +13,7 @@ bool timerStopRepeat = false;
 bool timerAlive = true;
 bool timerRestart = false;
 
-Timer tempTimer = null;
+Timer tempTimer = INVALID_HANDLE;
 
 int idleTime = 0;
 int tempIdleTime = 0;
@@ -76,6 +76,15 @@ public void OnClientDisconnect(int client)
 	}
 }
 
+public void OnMapEnd()
+{
+	if (tempTimer != INVALID_HANDLE)
+	{
+		CloseHandle(tempTimer);
+		tempTimer = INVALID_HANDLE;
+	}
+}
+
 /******************/
 //	ConVars
 /******************/
@@ -128,7 +137,7 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 		// Prevent currently idling spectators from getting insta-kicked.
 		ResetIdleTimeAll();
 
-		if (tempTimer != null)
+		if (tempTimer != INVALID_HANDLE)
 		{
 			CloseHandle(tempTimer);
 		}
@@ -141,8 +150,7 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 		(
 			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
 			Timer_RepeatNTimes, 
-			N,
-			TIMER_FLAG_NO_MAPCHANGE
+			N
 		);
 	}
 }
@@ -259,13 +267,12 @@ Action Timer_RepeatNTimes(Handle timer, int N)
 		(
 			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
 			Timer_RepeatNTimes, 
-			N - 1,
-			TIMER_FLAG_NO_MAPCHANGE
+			N - 1
 		);
 	}
 	else
 	{
-		tempTimer = null;
+		tempTimer = INVALID_HANDLE;
 	}
 
 	return Plugin_Stop;
@@ -296,7 +303,7 @@ Action Timer_ResetIdle(Handle timer)
 		if (tempTimer != null)
 		{
 			CloseHandle(tempTimer);
-			tempTimer = null;
+			tempTimer = INVALID_HANDLE;
 		}
 
 		Timer_Start();
