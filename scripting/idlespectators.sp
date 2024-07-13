@@ -299,7 +299,7 @@ Action Timer_ResetIdle(Handle timer)
 
 		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 
-		if (tempTimer != null)
+		if (tempTimer != INVALID_HANDLE)
 		{
 			CloseHandle(tempTimer);
 			tempTimer = INVALID_HANDLE;
