@@ -18,8 +18,6 @@ bool keepAdmins = true;
 
 int emptySlots = 4;
 
-int engineVersion = 0;
-
 // In-game CVars give allowed idle time in minutes.
 int idleTime = 0;
 int tempIdleTime = 0;
@@ -32,7 +30,9 @@ ConVar g_cvKickFull;
 ConVar g_cvIdleMaxTime;
 ConVar g_cvKeepAdmins;
 
-Timer tempTimer = INVALID_HANDLE;
+Handle tempTimer = INVALID_HANDLE;
+
+EngineVersion engineVersion;
 
 enum 
 {
