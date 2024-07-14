@@ -133,7 +133,7 @@ void CVar_Set()
 	g_cvKeepAdmins = CreateConVar
 	(
 		"sm_idlespec_keep_admins", "1",
-		"Never kick idle spectators if they are admins",
+		"Never kick idle spectators if they are an admin",
 		_, 
 		true, 0.0, true, 1.0
 	);
