@@ -27,7 +27,7 @@ int tempIdleTime = 0;
 // Reset time is given in seconds.
 float resetIdleTime = 0.0;
 
-ConVar g_cvEnabled;
+ConVar g_cvDisabled;
 ConVar g_cvKickFull;
 ConVar g_cvIdleMaxTime;
 ConVar g_cvKeepAdmins;
@@ -112,9 +112,9 @@ public void OnClientDisconnect(int client)
 
 void CVar_Set()
 {
-	g_cvEnabled = CreateConVar
+	g_cvDisabled = CreateConVar
 	(
-		"sm_idlespec_autokick", "0",
+		"sm_idlespec_disabled", "0",
 		"Enable auto-kick for idle spectators", 
 		_, 
 		true, 0.0, true, 1.0
@@ -123,7 +123,7 @@ void CVar_Set()
 	g_cvKickFull = CreateConVar
 	(
 		"sm_idlespec_kick_full", "4", 
-		"Start auto-kicking idle spectators when the server is full.\
+		"Enable auto-kicking idle spectators when the server is full.\
 		 Setting this to 0 will disable the feature; anything 1 and \
 		 above will enable it and set the player congestation variable", 
 		_,
@@ -133,7 +133,7 @@ void CVar_Set()
 	g_cvKeepAdmins = CreateConVar
 	(
 		"sm_idlespec_keep_admins", "1",
-		"Never kick idle admin spectators",
+		"Never kick idle spectators if they are admins",
 		_, 
 		true, 0.0, true, 1.0
 	);
@@ -171,7 +171,7 @@ void CVar_Set()
 	
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
-	g_cvEnabled.AddChangeHook(CVar_EnabledChange);
+	g_cvDisabled.AddChangeHook(CVar_DisabledChange);
 	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
 	g_cvIdleMaxTime.AddChangeHook(CVar_IdleMaxTimeChange);
 	g_cvKeepAdmins.AddChangeHook(CVar_KeepAdminsChange);
@@ -218,7 +218,7 @@ void CVar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	}
 }
 
-void CVar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
+void CVar_DisabledChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	if (StringToInt(newval) == 1)
 	{
