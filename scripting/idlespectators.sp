@@ -236,9 +236,9 @@ Action Event_PlayerTeam(Event ev, const char[] name, bool dontBroadcast)
 	return Plugin_Continue;
 }
 
-/******************/
-//	Misc
-/******************/
+/***********************/
+//	Core Functions
+/***********************/
 
 void ResetClientIdleTime(int client)
 {
