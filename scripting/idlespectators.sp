@@ -159,10 +159,8 @@ void CVar_Set()
 
 void CVar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
-	tempIdleTime = StringToInt(newval);
-
-	if (engineVersion == Engine_CSS)
-			tempIdleTime = RoundToCeil(float(tempIdleTime)/60.0);
+	tempIdleTime = engineVersion == Engine_CSS ? 
+		RoundToCeil(StringToFloat(newval)/60.0) : StringToInt(newval);
 
 	// Let the old timer run its course and restart it as a longer timer.
 	if (tempIdleTime >= idleTime)
