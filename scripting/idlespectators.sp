@@ -13,18 +13,19 @@ bool timerStopRepeat = false;
 bool timerAlive = true;
 bool timerRestart = false;
 
-Timer tempTimer = INVALID_HANDLE;
+bool isEnabled = true;
+bool kickIdleOnFull = true;
 
 int idleTime = 0;
 int tempIdleTime = 0;
+
 float resetIdleTime = 0.0;
 
 ConVar g_cvEnabled;
 ConVar g_cvKickFull;
 ConVar g_cvIdleMaxTime;
 
-bool isEnabled = true;
-bool kickIdleOnFull = true;
+Timer tempTimer = INVALID_HANDLE;
 
 enum 
 {
