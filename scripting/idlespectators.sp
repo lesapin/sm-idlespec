@@ -115,9 +115,9 @@ void CVar_Set()
 	g_cvEnabled = CreateConVar
 	(
 		"sm_idlespec_autokick", "0",
-		"Enable auto-kick for idle spectators", _, 
-		true, 0.0,
-		true, 1.0
+		"Enable auto-kick for idle spectators", 
+		_, 
+		true, 0.0, true, 1.0
 	);
 
 	g_cvKickFull = CreateConVar
@@ -125,17 +125,17 @@ void CVar_Set()
 		"sm_idlespec_kick_full", "4", 
 		"Start auto-kicking idle spectators when the server is full.\
 		 Setting this to 0 will disable the feature; anything 1 and \
-		 above will enable it and set the player congestation variable", _,
-		true, 0.0,
-		true, float(MaxClients)
+		 above will enable it and set the player congestation variable", 
+		_,
+		true, 0.0, true, float(MaxClients)
 	);
 
 	g_cvKeepAdmins = CreateConVar
 	(
 		"sm_idlespec_keep_admins", "1",
-		"Never kick idle admin spectators", _, 
-		true, 0.0,
-		true, 1.0
+		"Never kick idle admin spectators",
+		_, 
+		true, 0.0, true, 1.0
 	);
 
 	CreateConVar
