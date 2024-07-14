@@ -120,9 +120,14 @@ void CVar_Set()
 	switch (GetEngineVersion())
 	{
 		case Engine_TF2:
-		case Engine_Left4Dead2:
 		{
 			g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
+			idleTime = g_cvIdleMaxTime.IntValue;
+			resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
+		}
+		case Engine_Left4Dead2:
+		{
+			g_cvIdleMaxTime = FindConVar("sv_spectatoridletime");
 			idleTime = g_cvIdleMaxTime.IntValue;
 			resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 		}
