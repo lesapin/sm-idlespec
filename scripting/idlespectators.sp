@@ -42,8 +42,14 @@ public Plugin myinfo =
 	url = "https://mge.me/"
 };
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] err, int err_max)
+{
+
+	return APLRes_Success;
+}
+
 /**********************/
-//	ON-Functions
+//	On-Functions
 /**********************/
 
 public void OnPluginStart()
@@ -53,7 +59,7 @@ public void OnPluginStart()
 
 public void OnConfigsExecuted()
 {
-	Cvar_Set();
+	CVar_Set();
 	Timer_Start();
 }
 
@@ -90,7 +96,7 @@ public void OnMapEnd()
 //	ConVars
 /******************/
 
-void Cvar_Set()
+void CVar_Set()
 {
 	g_cvEnabled = CreateConVar("sm_idlespec_autokick", "0",
 		"Enable auto-kick for spectators if they are idle");
@@ -110,18 +116,19 @@ void Cvar_Set()
 	// CSS: sv_timeout
 	g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
 
-	g_cvEnabled.AddChangeHook(Cvar_EnabledChange);
-	g_cvKickFull.AddChangeHook(Cvar_KickFullChange);
-	g_cvIdleMaxTime.AddChangeHook(Cvar_IdleMaxTimeChange);
+	g_cvEnabled.AddChangeHook(CVar_EnabledChange);
+	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
+	g_cvIdleMaxTime.AddChangeHook(CVar_IdleMaxTimeChange);
 
 	idleTime = g_cvIdleMaxTime.IntValue;
 	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
+
 #if defined DEBUG
 	PrintToServer("idleTime: %i, resetIdleTime: %f", idleTime, resetIdleTime);
 #endif
 }
 
-void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
+void CVar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	tempIdleTime = StringToInt(newval);
 
@@ -135,7 +142,8 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	{	
 		timerRestart = true;
 
-		// Prevent currently idling spectators from getting insta-kicked.
+		// Prevent spectators from getting insta-kicked if they have been idle for
+		// longer than the new mp_idlemaxtime period.
 		ResetIdleTimeAll();
 
 		if (tempTimer != INVALID_HANDLE)
@@ -156,7 +164,7 @@ void Cvar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 	}
 }
 
-void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
+void CVar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	if (StringToInt(newval) == 1)
 	{
@@ -175,7 +183,7 @@ void Cvar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 	}
 }
 
-void Cvar_KickFullChange(ConVar cvar, char[] oldval, char[] newval)
+void CVar_KickFullChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	kickIdleOnFull = StringToInt(newval) == 1 ? true : false;
 }
@@ -224,6 +232,7 @@ void ResetClientIdleTime(int client)
 
 	SetEntProp(client, Prop_Send, "m_iObserverMode", iObsMode);
 	SetEntPropEnt(client, Prop_Send, "m_hObserverTarget", hObsTarget);
+
 #if defined DEBUG
 	PrintToChat(client, "mode: %i, target: %i", iObsMode, hObsTarget);
 	PrintToChat(client, "ang: %f %f %f", eyeAngles[0], eyeAngles[1], eyeAngles[2]);
@@ -298,6 +307,8 @@ Action Timer_ResetIdle(Handle timer)
 		idleTime = tempIdleTime;
 		resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
+		Timer_Start();
+
 		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
 
 		if (tempTimer != INVALID_HANDLE)
@@ -305,8 +316,6 @@ Action Timer_ResetIdle(Handle timer)
 			CloseHandle(tempTimer);
 			tempTimer = INVALID_HANDLE;
 		}
-
-		Timer_Start();
 
 		return Plugin_Stop;
 	} 
