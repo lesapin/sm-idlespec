@@ -16,7 +16,7 @@ bool isEnabled = true;
 bool kickIdleOnFull = true;
 bool keepAdmins = true;
 
-int emptySlots = 5;
+int emptySlots = 4;
 
 int engineVersion = 0;
 
