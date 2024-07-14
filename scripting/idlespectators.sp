@@ -105,13 +105,13 @@ public void OnClientDisconnect(int client)
 void CVar_Set()
 {
 	g_cvEnabled = CreateConVar("sm_idlespec_autokick", "0",
-		"Enable auto-kick for spectators if they are idle");
+		"Enable auto-kick for idle spectators");
 
 	g_cvKickFull = CreateConVar("sm_idlespec_kick_full", "1", 
-		"Auto-kick idle spectators once the server is full");
+		"Start auto-kicking idle spectators when the server is full");
 
 	g_cvKeepAdmins = CreateConVar("sm_idlespec_keep_admins", "1",
-		"Keep idle admin spectators always");
+		"Never kick idle admin spectators");
 
 	CreateConVar
 	(
