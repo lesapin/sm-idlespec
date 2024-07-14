@@ -120,16 +120,17 @@ void CVar_Set()
 	switch (GetEngineVersion())
 	{
 		case Engine_TF2:
+		case Engine_Left4Dead2:
 		{
 			g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
+			idleTime = g_cvIdleMaxTime.IntValue;
+			resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 		}
 		case Engine_CSS:
 		{
 			g_cvIdleMaxTime = FindConVar("sv_timeout");
-		}
-		case Engine_Left4Dead2:
-		{
-			g_cvIdleMaxTime = FindConVar("sv_spectatoridletime");
+			idleTime = g_cvIdleMaxTime.IntValue;
+			resetIdleTime = idleTime <= 60 ? 60.0 : float(idleTime) - 60.0;
 		}
 		default:
 		{
@@ -141,8 +142,6 @@ void CVar_Set()
 	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
 	g_cvIdleMaxTime.AddChangeHook(CVar_IdleMaxTimeChange);
 
-	idleTime = g_cvIdleMaxTime.IntValue;
-	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
 #if defined DEBUG
 	PrintToServer("idleTime: %i, resetIdleTime: %f", idleTime, resetIdleTime);
