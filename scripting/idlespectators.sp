@@ -16,6 +16,8 @@ bool isEnabled = true;
 bool kickIdleOnFull = true;
 bool keepAdmins = true;
 
+int emptySlots = 5;
+
 int engineVersion = 0;
 
 // Allowed idle time in minutes.
@@ -95,7 +97,11 @@ public void OnClientDisconnect(int client)
 {
 	if (isEnabled && !timerAlive)
 	{
-		timerAlive = true;
+		// Let the server decongest a little before restarting the timer. 
+		if (GetClientCount() <= MaxClients - emptySlots)
+		{
+			timerAlive = true;
+		}
 	}
 }
 
