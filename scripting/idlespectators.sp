@@ -20,10 +20,11 @@ int emptySlots = 4;
 
 int engineVersion = 0;
 
-// Allowed idle time is given in minutes.
+// In-game CVars give allowed idle time in minutes.
 int idleTime = 0;
 int tempIdleTime = 0;
 
+// Reset time is given in seconds.
 float resetIdleTime = 0.0;
 
 ConVar g_cvEnabled;
