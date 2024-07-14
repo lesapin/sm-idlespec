@@ -248,7 +248,7 @@ Action Event_PlayerTeam(Event ev, const char[] name, bool dontBroadcast)
 
 void ResetClientIdleTime(int client)
 {
-	if (!timerAlive || !(keepAdmins && GetUserFlagBits(client)))
+	if (!(timerAlive || (keepAdmins && GetUserFlagBits(client))))
 		return;
 
 	float eyeAngles[3];
