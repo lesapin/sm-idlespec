@@ -20,7 +20,7 @@ int emptySlots = 4;
 
 int engineVersion = 0;
 
-// Allowed idle time in minutes.
+// Allowed idle time is given in minutes.
 int idleTime = 0;
 int tempIdleTime = 0;
 
