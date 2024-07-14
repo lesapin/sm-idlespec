@@ -26,6 +26,7 @@ float resetIdleTime = 0.0;
 ConVar g_cvEnabled;
 ConVar g_cvKickFull;
 ConVar g_cvIdleMaxTime;
+ConVar g_cvKeepAdmins;
 
 Timer tempTimer = INVALID_HANDLE;
 
@@ -109,6 +110,9 @@ void CVar_Set()
 	g_cvKickFull = CreateConVar("sm_idlespec_kick_full", "1", 
 		"Auto-kick idle spectators once the server is full");
 
+	g_cvKeepAdmins = CreateConVar("sm_idlespec_keep_admins", "1",
+		"Keep idle admin spectators always");
+
 	CreateConVar
 	(
 		"sm_idlespec_version", 
@@ -123,30 +127,29 @@ void CVar_Set()
 		{
 			g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
 			idleTime = g_cvIdleMaxTime.IntValue;
-			resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 		}
 		case Engine_Left4Dead2:
 		{
 			g_cvIdleMaxTime = FindConVar("sv_spectatoridletime");
 			idleTime = g_cvIdleMaxTime.IntValue;
-			resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 		}
 		case Engine_CSS:
 		{
 			g_cvIdleMaxTime = FindConVar("sv_timeout");
-			idleTime = g_cvIdleMaxTime.IntValue;
-			resetIdleTime = idleTime <= 60 ? 60.0 : float(idleTime) - 60.0;
+			idleTime = RoundToCeil(float(g_cvIdleMaxTime.IntValue)/60.0);
 		}
 		default:
 		{
 			SetFailState("Engine not supported by this plugin.");
 		}
 	}
+	
+	resetIdleTime = (idleTime <= 1 ? 1.0 : float(idleTime) - 1.0) * 60.0;
 
 	g_cvEnabled.AddChangeHook(CVar_EnabledChange);
 	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
 	g_cvIdleMaxTime.AddChangeHook(CVar_IdleMaxTimeChange);
-
+	g_cvKeepAdmins.AddChangeHook(CVar_KeepAdminsChange);
 
 #if defined DEBUG
 	PrintToServer("idleTime: %i, resetIdleTime: %f", idleTime, resetIdleTime);
@@ -206,6 +209,11 @@ void CVar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 void CVar_KickFullChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	kickIdleOnFull = StringToInt(newval) == 1 ? true : false;
+}
+
+void CVar_KeepAdminsChange(ConVar cvar, char[] oldval, char[] newval)
+{
+	keepAdmins = StringToInt(newval) == 1 ? true : false;
 }
 
 /******************/
