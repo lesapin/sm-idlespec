@@ -9,12 +9,14 @@
 
 bool preventTeamBroadcast = false;
 
-bool timerStopRepeat = false;
-bool timerAlive = true;
+bool timerAlive = false;
 bool timerRestart = false;
 
 bool isEnabled = true;
 bool kickIdleOnFull = true;
+bool keepAdmins = true;
+
+int engineVersion = 0;
 
 int idleTime = 0;
 int tempIdleTime = 0;
@@ -44,6 +46,10 @@ public Plugin myinfo =
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] err, int err_max)
 {
+	engineVersion = GetEngineVersion();
+
+	if (engineVersion != Engine_TF2 || engineVersion != Engine_Left4Dead2 || engineVersion != Engine_CSS)
+		return APLRes_Failure;
 
 	return APLRes_Success;
 }
@@ -55,6 +61,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] err, int err_max)
 public void OnPluginStart()
 {
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Pre);
+}
+
+public void OnMapEnd()
+{
+	if (tempTimer != INVALID_HANDLE)
+	{
+		CloseHandle(tempTimer);
+		tempTimer = INVALID_HANDLE;
+	}
 }
 
 public void OnConfigsExecuted()
@@ -69,7 +84,7 @@ public void OnClientConnected(int client)
 	{
 		if (GetClientCount() == MaxClients)
 		{
-			timerStopRepeat = true;
+			timerAlive = false;
 		}
 	}
 }
@@ -78,17 +93,7 @@ public void OnClientDisconnect(int client)
 {
 	if (isEnabled && !timerAlive)
 	{
-		timerStopRepeat = false;
-		Timer_Start();
-	}
-}
-
-public void OnMapEnd()
-{
-	if (tempTimer != INVALID_HANDLE)
-	{
-		CloseHandle(tempTimer);
-		tempTimer = INVALID_HANDLE;
+		timerAlive = true;
 	}
 }
 
@@ -112,9 +117,25 @@ void CVar_Set()
         	FCVAR_SPONLY | FCVAR_CHEAT
 	);
 
-	// L4D: sv_spectatoridletime
-	// CSS: sv_timeout
-	g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
+	switch (GetEngineVersion())
+	{
+		case Engine_TF2:
+		{
+			g_cvIdleMaxTime = FindConVar("mp_idlemaxtime");
+		}
+		case Engine_CSS:
+		{
+			g_cvIdleMaxTime = FindConVar("sv_timeout");
+		}
+		case Engine_Left4Dead2:
+		{
+			g_cvIdleMaxTime = FindConVar("sv_spectatoridletime");
+		}
+		default:
+		{
+			SetFailState("Engine not supported by this plugin.");
+		}
+	}
 
 	g_cvEnabled.AddChangeHook(CVar_EnabledChange);
 	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
@@ -168,17 +189,12 @@ void CVar_EnabledChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	if (StringToInt(newval) == 1)
 	{
-		timerStopRepeat = true;
+		timerAlive = false;
 		isEnabled = false;
 	}
 	else
 	{
-		if (!timerAlive && !timerRestart)
-		{
-			Timer_Start();
-		}
-
-		timerStopRepeat = false;
+		timerAlive = true;
 		isEnabled = true;		
 	}
 }
@@ -212,6 +228,9 @@ Action Event_PlayerTeam(Event ev, const char[] name, bool dontBroadcast)
 
 void ResetClientIdleTime(int client)
 {
+	if (!timerAlive || !(keepAdmins && GetUserFlagBits(client)))
+		return;
+
 	float eyeAngles[3];
 	float eyePosition[3];
 
@@ -290,17 +309,9 @@ Action Timer_RepeatNTimes(Handle timer, int N)
 
 Action Timer_ResetIdle(Handle timer)
 {
-#if defined DEBUG
-	PrintToChatAll("Timer_ResetIdle");
-#endif
 	ResetIdleTimeAll();
 
-	if (timerStopRepeat)
-	{
-		timerAlive = false;
-		return Plugin_Stop;
-	}
-	else if (timerRestart)
+	if (timerRestart)
 	{
 		timerRestart = false;
 
