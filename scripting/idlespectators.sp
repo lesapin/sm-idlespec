@@ -154,7 +154,6 @@ void CVar_Set()
 	g_cvKickFull.AddChangeHook(CVar_KickFullChange);
 	g_cvIdleMaxTime.AddChangeHook(CVar_IdleMaxTimeChange);
 	g_cvKeepAdmins.AddChangeHook(CVar_KeepAdminsChange);
-
 #if defined DEBUG
 	PrintToServer("idleTime: %i, resetIdleTime: %f", idleTime, resetIdleTime);
 #endif
