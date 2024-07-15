@@ -5,7 +5,14 @@
 
 #pragma newdecls required
 
-#define PL_VERSION "1.1.2"
+#define PL_VERSION "1.1.7"
+
+ConVar g_cvDisabled;
+ConVar g_cvKickFull;
+ConVar g_cvIdleMaxTime;
+ConVar g_cvKeepAdmins;
+
+EngineVersion engineVersion;
 
 bool preventTeamBroadcast = false;
 
@@ -25,15 +32,6 @@ int tempIdleTime = 0;
 // Reset time is given in seconds.
 float resetIdleTime = 0.0;
 
-ConVar g_cvDisabled;
-ConVar g_cvKickFull;
-ConVar g_cvIdleMaxTime;
-ConVar g_cvKeepAdmins;
-
-Handle tempTimer = INVALID_HANDLE;
-
-EngineVersion engineVersion;
-
 enum 
 {
 	TeamNone = 0,
@@ -49,16 +47,6 @@ public Plugin myinfo =
 	url = "https://mge.me/"
 };
 
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] err, int err_max)
-{
-	engineVersion = GetEngineVersion();
-
-	if (engineVersion != Engine_TF2 || engineVersion != Engine_Left4Dead2 || engineVersion != Engine_CSS)
-		return APLRes_Failure;
-
-	return APLRes_Success;
-}
-
 /**********************/
 //	On-Functions
 /**********************/
@@ -66,15 +54,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] err, int err_max)
 public void OnPluginStart()
 {
 	HookEvent("player_team", Event_PlayerTeam, EventHookMode_Pre);
-}
-
-public void OnMapEnd()
-{
-	if (tempTimer != INVALID_HANDLE)
-	{
-		CloseHandle(tempTimer);
-		tempTimer = INVALID_HANDLE;
-	}
 }
 
 public void OnConfigsExecuted()
@@ -123,7 +102,7 @@ void CVar_Set()
 	g_cvKickFull = CreateConVar
 	(
 		"sm_idlespec_kick_full", "4", 
-		"Enable auto-kicking idle spectators when the server is full.\
+		"Enable auto-kicking idle spectators when the server is full. \
 		 Setting this to 0 will disable the feature; anything 1 and \
 		 above will enable it and set the player congestation variable", 
 		_,
@@ -185,7 +164,9 @@ void CVar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 {
 	tempIdleTime = engineVersion == Engine_CSS ? 
 		RoundToCeil(StringToFloat(newval)/60.0) : StringToInt(newval);
-
+#if defined DEBUG
+	PrintToChatAll("IdleMaxTime changed; tempIdleTime: %i", tempIdleTime);
+#endif
 	// Let the old timer run its course and restart it as a longer timer.
 	if (tempIdleTime >= idleTime)
 	{
@@ -200,16 +181,11 @@ void CVar_IdleMaxTimeChange(ConVar cvar, char[] oldval, char[] newval)
 		// longer than the new mp_idlemaxtime period.
 		ResetIdleTimeAll();
 
-		if (tempTimer != INVALID_HANDLE)
-		{
-			CloseHandle(tempTimer);
-		}
-
 		// Temporary timer that expires after at most N steps.
 		int N = RoundToFloor(float(idleTime)/float(tempIdleTime));
 		if (N <= 0) N = 1;
 
-		tempTimer = CreateTimer
+		CreateTimer
 		(
 			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
 			Timer_RepeatNTimes, 
@@ -325,22 +301,21 @@ void Timer_Start()
 
 Action Timer_RepeatNTimes(Handle timer, int N)
 {
-	ResetIdleTimeAll();
-	
-	CloseHandle(tempTimer);
-	
-	if (N >= 1)
+	if (timerRestart)
 	{
-		tempTimer = CreateTimer
-		(
-			(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
-			Timer_RepeatNTimes, 
-			N - 1
-		);
-	}
-	else
-	{
-		tempTimer = INVALID_HANDLE;
+		ResetIdleTimeAll();
+#if defined DEBUG
+		PrintToChatAll("Timer_RepeatNTimes %.0f fired, N = %i", view_as<float>(timer), N);
+#endif
+		if (N >= 1)
+		{
+			CreateTimer
+			(
+				(tempIdleTime <= 1 ? 1.0 : float(tempIdleTime) - 1.0) * 60.0,
+				Timer_RepeatNTimes, 
+				N - 1
+			);
+		}
 	}
 
 	return Plugin_Stop;
@@ -348,6 +323,9 @@ Action Timer_RepeatNTimes(Handle timer, int N)
 
 Action Timer_ResetIdle(Handle timer)
 {
+#if defined DEBUG
+	PrintToChatAll("Repeating timer %f fired, T = %.2f", timer, GetTickedTime());
+#endif
 	ResetIdleTimeAll();
 
 	if (timerRestart)
@@ -360,12 +338,6 @@ Action Timer_ResetIdle(Handle timer)
 		Timer_Start();
 
 		LogMessage("resetIdleTime changed to %f seconds", resetIdleTime);
-
-		if (tempTimer != INVALID_HANDLE)
-		{
-			CloseHandle(tempTimer);
-			tempTimer = INVALID_HANDLE;
-		}
 
 		return Plugin_Stop;
 	} 
